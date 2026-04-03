@@ -17,8 +17,8 @@ async function startServer() {
         // We define the DB name here so we can log it easily
         const dbName = 'Chatapp'; 
         const db = client.db(dbName);
-        const usersCol = db.collection('users');
-        const messagesCol = db.collection('messages');
+        const usersCol = db.collection('Users');
+        const messagesCol = db.collection('Messages');
 
         console.log("--- DATABASE DEBUG INFO ---");
         console.log(`Connected to: ${dbName}`);
