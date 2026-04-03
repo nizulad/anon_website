@@ -14,7 +14,7 @@ app.use(express.json());
 async function startServer() {
     try {
         await client.connect();
-        const db = client.db('chatApp');
+        const db = client.db('ChatApp');
         const usersCol = db.collection('users');
         const messagesCol = db.collection('messages');
 
