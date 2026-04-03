@@ -1,35 +1,64 @@
-body { 
-    font-family: sans-serif; 
-    background-color: #121212; 
-    color: white; 
-    margin: 0; 
-    display: flex; 
-    flex-direction: column; 
-    /* This ensures the app takes up the full height of any screen */
-    height: 100vh; 
-}
+<style>
+    :root {
+        --primary: #007bff;
+        --success: #28a745;
+        --bg: #0f1011;
+        --surface: #1c1e21;
+        --text: #e4e6eb;
+    }
 
-#messages { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 15px; 
-    /* Font size should be at least 16px to prevent iOS/Android zooming in on input */
-    font-size: 16px; 
-}
+    body { 
+        margin: 0; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        background: var(--bg); 
+        color: var(--text); 
+    }
 
-#input { 
-    width: 100%; /* Spans the full width of the screen */
-    padding: 15px; 
-    background: #1e1e1e; 
-    border: none; 
-    border-top: 1px solid #333;
-    color: white; 
-    outline: none;
-    font-size: 16px; /* 16px is the "sweet spot" for mobile inputs */
-    box-sizing: border-box; /* Ensures padding doesn't push the bar off-screen */
-}
+    /* Auth Screen styling */
+    #auth-screen { 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        height: 100vh; 
+    }
+    .auth-box { 
+        background: var(--surface); 
+        padding: 40px; 
+        border-radius: 12px; 
+        width: 90%; 
+        max-width: 350px;
+        border: 1px solid #333;
+    }
 
-.msg { 
-    margin-bottom: 12px; 
-    word-wrap: break-word; /* Prevents long words from breaking the layout */
-}
+    /* Chat Bubbles */
+    #messages li { 
+        margin-bottom: 12px; 
+        padding: 10px 15px; 
+        background: #242526; 
+        border-radius: 18px; 
+        max-width: 85%;
+        line-height: 1.4;
+        border-bottom-left-radius: 4px; /* Makes it look like a bubble */
+    }
+
+    /* Modern Input Bar */
+    #form { 
+        background: var(--surface); 
+        padding: 15px; 
+        display: flex; 
+        gap: 10px;
+    }
+    #input { 
+        border: 1px solid #3e4042; 
+        padding: 12px; 
+        flex-grow: 1; 
+        border-radius: 25px; 
+        background: #3a3b3c; 
+        color: white; 
+    }
+    button { 
+        border-radius: 20px; 
+        transition: transform 0.1s;
+    }
+    button:active { transform: scale(0.95); }
+</style>

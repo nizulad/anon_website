@@ -2,75 +2,114 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width , initial-scale=1.0">
-    <title>Chat App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Chat</title>
     <style>
-        /* Making sure we can actually see everything */
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #121212; /* Dark theme */
-            color: white; 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-        }
-        #messages { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            border-bottom: 1px solid #333;
-        }
-        #input { 
-            padding: 15px; 
-            background: #1e1e1e; 
-            border: none; 
-            color: white; 
-            outline: none;
-            font-size: 16px;
-        }
-        .msg { margin-bottom: 8px; line-height: 1.4; }
-        .user-id { color: #00adb5; font-weight: bold; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #121212; color: white; }
+        #auth-screen { display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+        .auth-box { background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 80%; max-width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; background: #333; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        #chat-screen { display: flex; flex-direction: column; height: 100vh; }
+        #messages { list-style-type: none; margin: 0; padding: 15px; flex-grow: 1; overflow-y: auto; }
+        #messages li { margin-bottom: 10px; padding: 8px; background: #222; border-radius: 5px; word-wrap: break-word; }
+        #form { background: #1e1e1e; padding: 10px; display: flex; border-top: 1px solid #333; }
+        #input { border: none; padding: 10px; flex-grow: 1; border-radius: 5px; background: #333; color: white; margin-right: 10px; }
+        .header { background: #007bff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1em; }
     </style>
 </head>
 <body>
 
-    <div id="messages"></div>
-    <input id="input" autocomplete="off" placeholder="Type a message and press Enter..." />
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h2>Hacker Chat</h2>
+            <input id="user-input" placeholder="Username">
+            <input id="pass-input" type="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <div style="margin: 10px 0; font-size: 0.8em; color: #888;">OR</div>
+            <button style="background: #28a745;" onclick="signup()">Request Access</button>
+            <p id="auth-msg" style="color: #ff4444; font-size: 0.9em;"></p>
+        </div>
+    </div>
+
+    <div id="chat-screen" style="display:none;">
+        <div class="header" id="current-room-label">Room: Assigned</div>
+        <ul id="messages"></ul>
+        <form id="form">
+            <input id="input" autocomplete="off" placeholder="Type a message..." /><button>Send</button>
+        </form>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        var socket = io();
-        var input = document.getElementById('input');
-        var messagesDiv = document.getElementById('messages');
+        let socket = io();
+        let currentUser = null;
+        let currentRoom = null;
 
-        // Function to add a message to the screen
-        function appendMessage(data) {
-            var item = document.createElement('div');
-            item.className = 'msg';
-            item.innerHTML = `<span class="user-id">${data.id}:</span> ${data.text}`;
-            messagesDiv.appendChild(item);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        async function login() {
+            const user = document.getElementById('user-input').value;
+            const pass = document.getElementById('pass-input').value;
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                currentUser = data;
+                currentRoom = data.room;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'flex';
+                document.getElementById('current-room-label').innerText = "Room: " + currentRoom;
+                
+                // Join the room assigned by Admin
+                socket.emit('join room', { username: currentUser.username, room: currentRoom });
+            } else {
+                document.getElementById('auth-msg').innerText = data.error;
+            }
         }
 
-        // 1. Load the history when joining
-        socket.on('load history', function(history) {
-            messagesDiv.innerHTML = ''; 
-            history.forEach(appendMessage);
-        });
+        async function signup() {
+            const user = document.getElementById('user-input').value;
+            const pass = document.getElementById('pass-input').value;
+            const res = await fetch('/signup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+            document.getElementById('auth-msg').style.color = res.ok ? "#28a745" : "#ff4444";
+            document.getElementById('auth-msg').innerText = data.message || data.error;
+        }
 
-        // 2. Listen for new messages
-        socket.on('chat message', function(data) {
-            appendMessage(data);
-        });
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
 
-        // 3. Send message on Enter
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && input.value.trim() !== '') {
-                socket.emit('chat message', input.value);
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (input.value && currentUser) {
+                socket.emit('chat message', { 
+                    text: input.value, 
+                    username: currentUser.username, 
+                    room: currentRoom,
+                    color: currentUser.color 
+                });
                 input.value = '';
             }
         });
+
+        socket.on('chat message', (msg) => { addMessage(msg); });
+        socket.on('load history', (history) => { history.forEach(addMessage); });
+
+        function addMessage(msg) {
+            const item = document.createElement('li');
+            item.innerHTML = `<span style="color:${msg.color}"><b>${msg.username}:</b></span> ${msg.text}`;
+            document.getElementById('messages').appendChild(item);
+            const msgList = document.getElementById('messages');
+            msgList.scrollTop = msgList.scrollHeight;
+        }
     </script>
 </body>
 </html>
