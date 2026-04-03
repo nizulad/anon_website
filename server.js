@@ -13,31 +13,47 @@ app.use(express.json());
 async function startServer() {
     try {
         await client.connect();
-        // Matching your screenshot 1686.jpg: Database is "Chatapp"
-        const db = client.db('Chatapp'); 
+        
+        // We define the DB name here so we can log it easily
+        const dbName = 'Chatapp'; 
+        const db = client.db(dbName);
         const usersCol = db.collection('users');
         const messagesCol = db.collection('messages');
-        console.log("Connected to MongoDB Atlas!");
 
-        // --- AUTHENTICATION ROUTES ---
+        console.log("--- DATABASE DEBUG INFO ---");
+        console.log(`Connected to: ${dbName}`);
+        
+        // Let's see what collections actually exist
+        const collections = await db.listCollections().toArray();
+        console.log("Collections found in DB:", collections.map(c => c.name));
+
+        // Count how many users are in the 'users' collection
+        const userCount = await usersCol.countDocuments();
+        console.log(`Number of documents in 'users' collection: ${userCount}`);
+        console.log("---------------------------");
 
         app.post('/login', async (req, res) => {
             const { username, password } = req.body;
-            console.log(`--- Login Attempt: ${username} ---`);
+            
+            // Debug the incoming text
+            console.log(`Login Attempt -> User: [${username}], Pass: [${password}]`);
 
-            const user = await usersCol.findOne({ username, password });
+            // Find the user
+            const user = await usersCol.findOne({ 
+                username: username, 
+                password: password 
+            });
 
             if (!user) {
-                console.log("Result: No user found in DB.");
+                console.log(`FAILED: No match for [${username}] in collection [${usersCol.collectionName}]`);
                 return res.status(401).json({ error: "Invalid username or password" });
             }
 
             if (user.status === 'pending') {
-                console.log("Result: User is pending approval.");
-                return res.status(403).json({ error: "Admin hasn't approved you yet" });
+                return res.status(403).json({ error: "Wait for admin approval" });
             }
 
-            console.log(`Result: Success! User assigned to ${user.assignedRoom}`);
+            console.log(`SUCCESS: Found ${user.username}`);
             res.json({
                 username: user.username,
                 role: user.role,
@@ -46,25 +62,18 @@ async function startServer() {
             });
         });
 
+        // --- Rest of your routes (Signup, Admin, Sockets) stay the same ---
         app.post('/signup', async (req, res) => {
             const { username, password } = req.body;
-            if (!username || !password) return res.status(400).json({ error: "Missing fields" });
-
             const exists = await usersCol.findOne({ username });
-            if (exists) return res.status(400).json({ error: "Username already taken" });
-
+            if (exists) return res.status(400).json({ error: "Username taken" });
             await usersCol.insertOne({
-                username,
-                password,
-                role: 'user',
-                status: 'pending',
-                assignedRoom: null,
-                color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                username, password, role: 'user', status: 'pending',
+                assignedRoom: null, color: `#${Math.floor(Math.random()*16777215).toString(16)}`
             });
-            res.json({ message: "Access requested! Wait for admin approval." });
+            res.json({ message: "Request sent!" });
         });
 
-        // --- ADMIN ROUTES ---
         app.get('/admin/pending', async (req, res) => {
             const pending = await usersCol.find({ status: 'pending' }).toArray();
             res.json(pending);
@@ -72,45 +81,26 @@ async function startServer() {
 
         app.post('/admin/approve', async (req, res) => {
             const { username, room } = req.body;
-            await usersCol.updateOne(
-                { username },
-                { $set: { status: 'approved', assignedRoom: room } }
-            );
+            await usersCol.updateOne({ username }, { $set: { status: 'approved', assignedRoom: room } });
             res.json({ success: true });
         });
 
-        // --- REAL-TIME SOCKET LOGIC ---
         io.on('connection', (socket) => {
             socket.on('join room', async ({ username, room }) => {
                 if(!room) return;
                 socket.join(room);
-                console.log(`${username} joined ${room}`);
-
-                const history = await messagesCol.find({ room })
-                    .sort({ _id: -1 })
-                    .limit(50)
-                    .toArray();
-
+                const history = await messagesCol.find({ room }).sort({ _id: -1 }).limit(50).toArray();
                 socket.emit('load history', history.reverse());
             });
-
             socket.on('chat message', async (data) => {
-                const messageData = {
-                    username: data.username,
-                    text: data.text,
-                    room: data.room,
-                    color: data.color,
-                    time: new Date()
-                };
-                await messagesCol.insertOne(messageData);
-                io.to(data.room).emit('chat message', messageData);
+                const msg = { ...data, time: new Date() };
+                await messagesCol.insertOne(msg);
+                io.to(data.room).emit('chat message', msg);
             });
         });
 
         const PORT = process.env.PORT || 3000;
-        http.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
+        http.listen(PORT, () => console.log(`Server Live on ${PORT}`));
 
     } catch (err) {
         console.error("Critical Server Error:", err);
