@@ -17,6 +17,25 @@ async function startServer() {
         const db = client.db('chatApp');
         const usersCol = db.collection('users');
         const messagesCol = db.collection('messages');
+
+       app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    console.log(`Login attempt for: ${username}`); // <--- ADD THIS
+
+    const user = await usersCol.findOne({ username, password });
+    
+    if (user) {
+        console.log(`User found in DB: ${user.username}, Status: ${user.status}`); // <--- AND THIS
+    } else {
+        console.log("No user found with those credentials.");
+    }
+    // ... rest of code
+});
+
+
+
+
+
         console.log("Connected to MongoDB Atlas!");
 
         // --- AUTHENTICATION ROUTES ---
