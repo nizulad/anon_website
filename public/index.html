@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+    <style>
+        /* Making sure we can actually see everything */
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #121212; /* Dark theme */
+            color: white; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+        #messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            border-bottom: 1px solid #333;
+        }
+        #input { 
+            padding: 15px; 
+            background: #1e1e1e; 
+            border: none; 
+            color: white; 
+            outline: none;
+            font-size: 16px;
+        }
+        .msg { margin-bottom: 8px; line-height: 1.4; }
+        .user-id { color: #00adb5; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="messages"></div>
+    <input id="input" autocomplete="off" placeholder="Type a message and press Enter..." />
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var input = document.getElementById('input');
+        var messagesDiv = document.getElementById('messages');
+
+        // Function to add a message to the screen
+        function appendMessage(data) {
+            var item = document.createElement('div');
+            item.className = 'msg';
+            item.innerHTML = `<span class="user-id">${data.id}:</span> ${data.text}`;
+            messagesDiv.appendChild(item);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 1. Load the history when joining
+        socket.on('load history', function(history) {
+            messagesDiv.innerHTML = ''; 
+            history.forEach(appendMessage);
+        });
+
+        // 2. Listen for new messages
+        socket.on('chat message', function(data) {
+            appendMessage(data);
+        });
+
+        // 3. Send message on Enter
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && input.value.trim() !== '') {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
