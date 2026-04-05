@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Chat</title>
-    <h1>all usernames & passwords MUST BE in lowercase letter</h1>
+
     <style>
         body { margin: 0; font-family: sans-serif; background: #121212; color: white; }
         #auth-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -21,7 +21,11 @@
     </style>
 </head>
 <body>
-
+     <h1>*</h1>
+     <h2>*</h2>
+     <h3>*</h3>
+     <h4>*</h4>
+    <p2><strong>all usernames & passwords MUST BE in                                            lowercase letter</strong></p2>
     <div id="auth-screen">
         <div class="auth-box">
             <h2>Private Chat</h2>
@@ -41,7 +45,7 @@
                 <option value="room 1">room 1</option>
                 <option value="room 2">room 2</option>
                 <option value="Secret Lounge">Secret Lounge</option>
-                <option value="room 4">room 4</option>       
+                <option value="room 4">room 4</option>
                 <option value="room 3">room 3</option>
 
             </select>
@@ -72,7 +76,7 @@
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('chat-screen').style.display = 'flex';
                 document.getElementById('room-label').innerText = "Room: " + currentRoom;
-                
+
                 if(currentUser.role === 'super') document.getElementById('admin-panel').style.display = 'block';
 
                 socket.emit('join room', { username: currentUser.username, room: currentRoom });
