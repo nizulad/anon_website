@@ -17,15 +17,17 @@ async function startServer() {
         const usersCol = db.collection('Users'); 
         const messagesCol = db.collection('Messages'); 
 
-        console.log("Connected to MongoDB Atlas! (Chatapp.Users)");
+        console.log("Connected to MongoDB Atlas! (Invite-Only Mode)");
 
-        // --- AUTHENTICATION ---
+        // --- AUTHENTICATION ONLY ---
         app.post('/login', async (req, res) => {
             const { username, password } = req.body;
             const user = await usersCol.findOne({ username, password });
 
             if (!user) return res.status(401).json({ error: "Invalid credentials" });
-            if (user.status === 'pending') return res.status(403).json({ error: "Wait for approval" });
+            
+            // Still checking status in case you want to "deactivate" someone in Atlas
+            if (user.status === 'pending') return res.status(403).json({ error: "Access Denied" });
 
             res.json({
                 username: user.username,
@@ -35,37 +37,23 @@ async function startServer() {
             });
         });
 
-        app.post('/signup', async (req, res) => {
-            const { username, password } = req.body;
-            const exists = await usersCol.findOne({ username });
-            if (exists) return res.status(400).json({ error: "Taken" });
-            await usersCol.insertOne({
-                username, password, role: 'user', status: 'pending',
-                assignedRoom: null, color: `#${Math.floor(Math.random()*16777215).toString(16)}`
-            });
-            res.json({ message: "Request sent!" });
-        });
+        // (Signup route removed)
 
-        // --- SOCKET LOGIC WITH ADMIN SECURITY ---
         io.on('connection', (socket) => {
             socket.on('join room', async ({ username, room }) => {
                 const user = await usersCol.findOne({ username });
                 if (!user) return;
 
                 let targetRoom = room;
-                // SECURITY: If not admin, force them to their assigned room
                 if (user.role !== 'super') {
                     targetRoom = user.assignedRoom;
                 }
 
-                // Leave old rooms
                 Array.from(socket.rooms).forEach(r => {
                     if (r !== socket.id) socket.leave(r);
                 });
 
                 socket.join(targetRoom);
-                console.log(`${username} joined ${targetRoom}`);
-
                 const history = await messagesCol.find({ room: targetRoom })
                     .sort({ _id: -1 }).limit(50).toArray();
                 socket.emit('load history', history.reverse());

@@ -9,7 +9,7 @@
         #auth-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
         .auth-box { background: #1e1e1e; padding: 30px; border-radius: 10px; width: 80%; max-width: 300px; text-align: center; }
         input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; background: #333; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer; font-weight: bold; }
         #chat-screen { display: none; flex-direction: column; height: 100vh; }
         #messages { list-style: none; margin: 0; padding: 15px; flex-grow: 1; overflow-y: auto; }
         #messages li { margin-bottom: 10px; padding: 8px; background: #222; border-radius: 5px; }
@@ -23,13 +23,12 @@
 
     <div id="auth-screen">
         <div class="auth-box">
-            <h2>Anon chat</h2>
-            <h3>to sign up enter a username and a password then click request access</h3>
+            <h2>Private Chat</h2>
+            <p style="font-size: 0.8em; color: #888;">Authorized Personnel Only</p>
             <input id="user-input" placeholder="Username">
             <input id="pass-input" type="password" placeholder="Password">
             <button onclick="login()">Login</button>
-            <button style="background: #28a745; margin-top:10px;" onclick="signup()">Request Access</button>
-            <p id="auth-msg" style="color: #ff4444; font-size: 0.8em;"></p>
+            <p id="auth-msg" style="color: #ff4444; font-size: 0.8em; margin-top: 10px;"></p>
         </div>
     </div>
 
@@ -38,12 +37,9 @@
         <div id="admin-panel">
             <label>Switch Room: </label>
             <select id="room-select" onchange="switchRoom()" style="background:#444; color:white; border:none; padding:5px;">
-                <option value="general">general</option>
-                <option value="room 1">room 1</option>
+                <option value="Group 1">Group 1</option>
+                <option value="Group 2">Group 2</option>
                 <option value="Secret Lounge">Secret Lounge</option>
-                <option value="room 2">room 2</option>
-                <option value="room 3">room 3</option>
-                <option value="room 4">room 4</option>
             </select>
         </div>
         <ul id="messages"></ul>
@@ -73,7 +69,6 @@
                 document.getElementById('chat-screen').style.display = 'flex';
                 document.getElementById('room-label').innerText = "Room: " + currentRoom;
                 
-                // Show switcher only if admin
                 if(currentUser.role === 'super') document.getElementById('admin-panel').style.display = 'block';
 
                 socket.emit('join room', { username: currentUser.username, room: currentRoom });
@@ -87,18 +82,6 @@
             document.getElementById('messages').innerHTML = '';
             document.getElementById('room-label').innerText = "Room: " + currentRoom;
             socket.emit('join room', { username: currentUser.username, room: currentRoom });
-        }
-
-        async function signup() {
-            const user = document.getElementById('user-input').value;
-            const pass = document.getElementById('pass-input').value;
-            const res = await fetch('/signup', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await res.json();
-            document.getElementById('auth-msg').innerText = data.message || data.error;
         }
 
         document.getElementById('form').addEventListener('submit', (e) => {
